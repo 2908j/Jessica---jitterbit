@@ -1,0 +1,111 @@
+import mongoose,
+import dotenv,
+import jsonwebtoken 
+
+
+
+
+const Order = require('../models/orderModel');
+
+// Criar novo pedido
+exports.createOrder = async (req, res) => {
+    try {
+        const { numeroPedido, valorTotal, dataCriacao, items } = req.body;
+
+        // Transformar JSON para o formato do banco
+        const mappedItems = items.map(i => ({
+            productId: Number(i.idItem),
+            quantity: i.quantidadeItem,
+            price: i.valorItem
+        }));
+
+        const newOrder = new Order({
+            orderId: numeroPedido,
+            value: valorTotal,
+            creationDate: new Date(dataCriacao),
+            items: mappedItems
+        });
+
+        await newOrder.save();
+        res.status(201).json(newOrder);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao criar pedido', error: error.message });
+    }
+};
+
+// Obter pedido por orderId
+exports.getOrder = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const order = await Order.findOne({ orderId });
+
+        if (!order) return res.status(404).json({ message: 'Pedido não encontrado' });
+
+        res.status(200).json(order);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao buscar pedido', error: error.message });
+    }
+};
+
+// Listar todos os pedidos
+exports.listOrders = async (req, res) => {
+    try {
+        const orders = await Order.find();
+        res.status(200).json(orders);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao listar pedidos', error: error.message });
+    }
+};
+
+// Atualizar pedido
+exports.updateOrder = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const { valorTotal, dataCriacao, items } = req.body;
+
+        const mappedItems = items?.map(i => ({
+            productId: Number(i.idItem),
+            quantity: i.quantidadeItem,
+            price: i.valorItem
+        }));
+
+        const updatedOrder = await Order.findOneAndUpdate(
+            { orderId },
+            {
+                value: valorTotal,
+                creationDate: dataCriacao ? new Date(dataCriacao) : undefined,
+                items: mappedItems
+            },
+            { new: true }
+        );
+
+        if (!updatedOrder) return res.status(404).json({ message: 'Pedido não encontrado' });
+
+        res.status(200).json(updatedOrder);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao atualizar pedido', error: error.message });
+    }
+};
+
+// Deletar pedido
+exports.deleteOrder = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const deletedOrder = await Order.findOneAndDelete({ orderId });
+
+        if (!deletedOrder) return res.status(404).json({ message: 'Pedido não encontrado' });
+
+        res.status(200).json({ message: 'Pedido deletado com sucesso' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erro ao deletar pedido', error: error.message });
+    }
+};
